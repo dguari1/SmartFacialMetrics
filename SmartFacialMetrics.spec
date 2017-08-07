@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['SmartFacialMetrics.py'],
-             pathex=['C:\\Users\\GUARIND\\Documents\\GitHub\\ImageProcessMEEI'],
+             pathex=['C:\\Users\\GUARIND\\Documents\\GitHub\\SmartFacialMetrics'],
              binaries=[],
              datas=[],
              hiddenimports=[],
