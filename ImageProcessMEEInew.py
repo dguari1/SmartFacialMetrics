@@ -26,6 +26,7 @@ from utils_ProcessMEEI import shape_to_np
 from utils_ProcessMEEI import draw_on_picture
 from utils_ProcessMEEI import estimate_lines
 from utils_ProcessMEEI import compute_measurements
+from utils_ProcessMEEI import get_info_from_txt
 
 #import classes 
 from classes_ProcessMEEI import CoordinateStoreEye
@@ -86,8 +87,10 @@ def process_eye(EyeImage):
     return circle
 
 
-def process_image(file_to_read, path, image, shape, mod_rect):
+def process_image(file_to_read, path, image, mod_rect, shape):
     #this function takes care of do all the processing of a valid image
+    
+    
     
     
     #initialize the class to get coordinates on click event 
@@ -100,37 +103,60 @@ def process_image(file_to_read, path, image, shape, mod_rect):
     cv2.imshow('MainWindow',image)       
     
     
+    #shape variable contains the information for the landmarks (if these were 
+    #localized using dlib) or the name of the txt file containing the 
+    #informatio of the landmarks and pupils 
+
+    if isinstance(shape, np.ndarray): #shape is a np.array, so it contains only the landmarks
+        #make local copy of the image and the original points, these will be modified 
+        #through the execution of this program 
+        temp_image=image.copy()
+        temp_shape=shape.copy()
+        #locate pupil on left eye
+        x_left = temp_shape[42,0]
+        w_left = (temp_shape[45,0]-x_left)
+        y_left = min(temp_shape[43,1],temp_shape[44,1])
+        h_left = (max(temp_shape[46,1],temp_shape[47,1])-y_left)
+        LeftEye = temp_image.copy()
+        LeftEye = LeftEye[(y_left-5):(y_left+h_left+5),(x_left-5):(x_left+w_left+5)]
+        selected_circle_left = GetPupil(LeftEye)
+        selected_circle_left[0]=selected_circle_left[0]+x_left-5
+        selected_circle_left[1]=selected_circle_left[1]+y_left-5
+        #print a point in the center of the pupil and a circle in it
+        
+        
+        #locate pupil on right eye
+        x_right = temp_shape[36,0]
+        w_right = (temp_shape[39,0]-x_right)
+        y_right = min(temp_shape[37,1],temp_shape[38,1])
+        h_right = (max(temp_shape[41,1],temp_shape[40,1])-y_right)
+        RightEye = temp_image.copy()
+        RightEye = RightEye[(y_right-5):(y_right+h_right+5),(x_right-5):(x_right+w_right+5)]
+        selected_circle_right = GetPupil(RightEye)
+        selected_circle_right[0]=selected_circle_right[0]+x_right-5
+        selected_circle_right[1]=selected_circle_right[1]+y_right-5
+    else:
+        file=shape
+        shape,selected_circle_left,selected_circle_right=get_info_from_txt(file)
+        
+        temp_image=image.copy()
+        temp_shape=shape.copy()
+        #Left Eye
+        x_left = temp_shape[42,0]
+        w_left = (temp_shape[45,0]-x_left)
+        y_left = min(temp_shape[43,1],temp_shape[44,1])
+        h_left = (max(temp_shape[46,1],temp_shape[47,1])-y_left)
+        LeftEye = temp_image.copy()
+        LeftEye = LeftEye[(y_left-5):(y_left+h_left+5),(x_left-5):(x_left+w_left+5)]
+        
+        #Right Eye
+        x_right = temp_shape[36,0]
+        w_right = (temp_shape[39,0]-x_right)
+        y_right = min(temp_shape[37,1],temp_shape[38,1])
+        h_right = (max(temp_shape[41,1],temp_shape[40,1])-y_right)
+        RightEye = temp_image.copy()
+        RightEye = RightEye[(y_right-5):(y_right+h_right+5),(x_right-5):(x_right+w_right+5)]
     
-    #make local copy of the image and the original points, these will be modified 
-    #through the execution of this program 
-    temp_image=image.copy()
-    temp_shape=shape.copy()
-    
-    
-    #locate pupil on left eye
-    x_left = temp_shape[42,0]
-    w_left = (temp_shape[45,0]-x_left)
-    y_left = min(temp_shape[43,1],temp_shape[44,1])
-    h_left = (max(temp_shape[46,1],temp_shape[47,1])-y_left)
-    LeftEye = temp_image.copy()
-    LeftEye = LeftEye[(y_left-5):(y_left+h_left+5),(x_left-5):(x_left+w_left+5)]
-    selected_circle_left = GetPupil(LeftEye)
-    selected_circle_left[0]=selected_circle_left[0]+x_left-5
-    selected_circle_left[1]=selected_circle_left[1]+y_left-5
-    #print a point in the center of the pupil and a circle in it
-    
-    
-    #locate pupil on right eye
-    x_right = temp_shape[36,0]
-    w_right = (temp_shape[39,0]-x_right)
-    y_right = min(temp_shape[37,1],temp_shape[38,1])
-    h_right = (max(temp_shape[41,1],temp_shape[40,1])-y_right)
-    RightEye = temp_image.copy()
-    RightEye = RightEye[(y_right-5):(y_right+h_right+5),(x_right-5):(x_right+w_right+5)]
-    selected_circle_right = GetPupil(RightEye)
-    selected_circle_right[0]=selected_circle_right[0]+x_right-5
-    selected_circle_right[1]=selected_circle_right[1]+y_right-5
-    #print a point in the center of the pupil and a circle in it
     
     #print in the image   
     temp_image=draw_on_picture(temp_image, temp_shape, 
@@ -360,13 +386,18 @@ def main(path,k):
     if len(files_to_read) == 0:
         sys.exit('No valid images in directory. Valid formats include .png, .jpg, .jpge and .bmp') 
         
-    #now, verify that the files to process are not already processed...
+    #now, discard the images that include landmarks 
     files_to_remove = [i for i in files_to_read if i.endswith('processed.jpg')]
     for i in files_to_remove:
         files_to_read.remove(i)
     
     #sort the list alphabetically....        
     files_to_read.sort()
+    
+    #find if there are images that where already processed. 
+    files_txt = [i for i in files if i.endswith('.txt')]
+    #files_txt.sort()
+
 
 
     while k < (len(files_to_read)):
@@ -447,30 +478,51 @@ def main(path,k):
                         k=0
                     break
         elif len(rects) == 1:
-            #now we have only one face in the image
-            #function to obtain facial landmarks using dlib 
-            #given an image and a face
-            #rectangle
-            for (i, rect) in enumerate(rects):
-                # determine the facial landmarks for the face region, then
-                # convert the facial landmark (x, y)-coordinates to a NumPy array
-    
-                #adjust face position using the scaling factor
-                mod_rect=rectangle(
-                        left=int(rect.left() * ScalingFactor), 
-                        top=int(rect.top() * ScalingFactor), 
-                        right=int(rect.right() * ScalingFactor), 
-                        bottom=int(rect.bottom() * ScalingFactor))
-       
-                #predict facial landmarks 
-                shape = predictor(image, mod_rect)   
             
-                #transform shape object to np.matrix type
-                shape = shape_to_np(shape)
+            #we need to verify that the landmark file is not already saved in 
+            #in the folder, if that is the case then do not compute new 
+            #landmarks, simply use the ones that are alreasy avaliable
+            if (file_to_read[0:-4]+'.txt') in files_txt:
+                shape=(path + '\\' + file_to_read[0:-4]+'.txt')
+                
+                for (i, rect) in enumerate(rects):
+                    # determine the facial landmarks for the face region, then
+                    # convert the facial landmark (x, y)-coordinates to a NumPy array
+        
+                    #adjust face position using the scaling factor
+                    mod_rect=rectangle(
+                            left=int(rect.left() * ScalingFactor), 
+                            top=int(rect.top() * ScalingFactor), 
+                            right=int(rect.right() * ScalingFactor), 
+                            bottom=int(rect.bottom() * ScalingFactor))
+            
+            #if no landmark file is avaliable then use dlib to locate them in
+            #the image 
+            else:
+                #now we have only one face in the image
+                #function to obtain facial landmarks using dlib 
+                #given an image and a face
+                #rectangle
+                for (i, rect) in enumerate(rects):
+                    # determine the facial landmarks for the face region, then
+                    # convert the facial landmark (x, y)-coordinates to a NumPy array
+        
+                    #adjust face position using the scaling factor
+                    mod_rect=rectangle(
+                            left=int(rect.left() * ScalingFactor), 
+                            top=int(rect.top() * ScalingFactor), 
+                            right=int(rect.right() * ScalingFactor), 
+                            bottom=int(rect.bottom() * ScalingFactor))
+           
+                    #predict facial landmarks 
+                    shape = predictor(image, mod_rect)   
+                
+                    #transform shape object to np.matrix type
+                    shape = shape_to_np(shape)
 
             #this function takes care of do all the processing of a valid image
             #it doesn't return anything 
-            KeyPressed = process_image(file_to_read, path, image, shape, mod_rect)
+            KeyPressed = process_image(file_to_read, path, image, mod_rect, shape)
             
             if  KeyPressed & 0xFF == ord('q'):
                 #if keypressed = q then quit

@@ -630,6 +630,51 @@ def line_intersection(line1, line2):
     y = det(d, ydiff) / div
     return x, y
 
+def get_info_from_txt(file):
+    shape=np.zeros((68,2),dtype=int)
+    left_pupil = np.zeros((1,3),dtype=int)
+    right_pupil = np.zeros((1,3),dtype=int)
+    
+    cont_landmarks = 0
+    get_landmarks = 0
+    
+    get_leftpupil = 0
+    cont_leftpupil = 0
+    
+    get_rightpupil = 0
+    cont_rightpupil = 0
+    with open(file, 'r') as file:
+        for i,line in enumerate(file):    
+            if i == 4:    
+                get_landmarks=1
+            if i == 72:
+                get_landmarks=0
+                
+            if get_landmarks == 1:
+                temp=(line[:]).split(',')
+                shape[cont_landmarks,0]=int(temp[0])
+                shape[cont_landmarks,1]=int(temp[1])
+                cont_landmarks += 1
+                
+            if i == 74:
+                get_leftpupil = 1
+            if i == 77:
+                get_leftpupil = 0
+                
+            if get_leftpupil == 1:
+                left_pupil[0,cont_leftpupil]=int(line[:])
+                cont_leftpupil += 1
+    
+            if i == 79:
+                get_rightpupil = 1
+            if i == 82:
+                get_rightpupil = 0
+                
+            if get_rightpupil == 1:            
+                right_pupil[0,cont_rightpupil]=int(line[:])
+                cont_rightpupil += 1      
+                
+    return shape, [left_pupil[0,0],left_pupil[0,1],left_pupil[0,2]],[right_pupil[0,0],right_pupil[0,1],right_pupil[0,2]]
 
 
 def save_txt_file(file,path,shape,mod_rect,circle_left,circle_right):
