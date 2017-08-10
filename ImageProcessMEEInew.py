@@ -396,7 +396,7 @@ def main(path,k):
     
     #find if there are images that where already processed. 
     files_txt = [i for i in files if i.endswith('.txt')]
-    #files_txt.sort()
+    files_txt.sort()
 
 
 
@@ -481,9 +481,10 @@ def main(path,k):
             
             #we need to verify that the landmark file is not already saved in 
             #in the folder, if that is the case then do not compute new 
-            #landmarks, simply use the ones that are alreasy avaliable
-            if (file_to_read[0:-4]+'.txt') in files_txt:
-                shape=(path + '\\' + file_to_read[0:-4]+'.txt')
+            #landmarks, simply use the ones that are already avaliable
+            file_txt=(file_to_read[0:-4]+'.txt')
+            if file_txt in files_txt:
+                shape=(path + '\\' + file_txt)
                 
                 for (i, rect) in enumerate(rects):
                     # determine the facial landmarks for the face region, then
