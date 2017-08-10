@@ -643,7 +643,7 @@ def get_info_from_txt(file):
     
     get_rightpupil = 0
     cont_rightpupil = 0
-    with open(file, 'r') as file:
+    with open(file, 'rt') as file:
         for i,line in enumerate(file):    
             if i == 4:    
                 get_landmarks=1
@@ -697,7 +697,7 @@ def save_txt_file(file,path,shape,mod_rect,circle_left,circle_right):
     #the same name as the original picture 
     #if the file exists then remove it -- sorry
     if os.path.isfile(path+'\\'+file[:-4]+'.txt'):
-        os.remove(path+'\\'+file[:-4]+'.txt')
+        os.remove(path+'\\'+file[:-4]+'.txt')           
         
     #now start writing in it
     with open(path+'\\'+file[:-4]+'.txt','a') as f:

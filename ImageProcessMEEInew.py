@@ -394,8 +394,9 @@ def main(path,k):
     #sort the list alphabetically....        
     files_to_read.sort()
     
+    ext=('.txt', '.TXT', '.Txt')
     #find if there are images that where already processed. 
-    files_txt = [i for i in files if i.endswith('.txt')]
+    files_txt = [i for i in files if i.endswith(tuple(ext))]
     files_txt.sort()
 
 
@@ -403,7 +404,9 @@ def main(path,k):
     while k < (len(files_to_read)):
         #load image and convert it to gray
         file_to_read=files_to_read[k]
-        image=cv2.imread(path + '\\'+file_to_read)
+        image=cv2.imread(r''+path + '\\'+file_to_read)
+        
+        
         
         #the image is in memory, so let's create a window and display it
         cv2.namedWindow("MainWindow", cv2.WINDOW_GUI_NORMAL + cv2.WINDOW_KEEPRATIO)
@@ -425,81 +428,109 @@ def main(path,k):
         #detect face in image using dlib.get_frontal_face_detector()
         rects = detector(smallImage,1)
         
-        if len(rects) == 0:
-            #there is no face, the user should move on or quit 
-            cv2.putText(image,"No face detected", 
-                        (int(height/5),int(width/2)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255),2)
-            while(True):
-                #show image
-                cv2.imshow('MainWindow',image)
-                #and wait for user input 
-                KeyPressed = cv2.waitKey(10) 
-                if  KeyPressed & 0xFF == ord('q'):
-                    #if keypressed = q then quit
-                    cv2.destroyAllWindows()
-                    return 0
-                    #sys.exit('exit')
-                elif KeyPressed & 0xFF == ord('d'):
-                    #if keypressed = d then move to the next image                    
-                    k += 1
-                    break
-                elif KeyPressed & 0xFF == ord('a'):
-                    #if keypressed = a then move to the previous image 
-                    k -= 1
-                    #if in the first image then do nothing  
-                    if k<0:
-                        k=0
-                    break
-        elif len(rects) > 1:
-            #there are multiple faces, the user should move on or quit 
-            cv2.putText(image,"Multiple faces detected", 
-                        (int(height/5),int(width/2)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255),2)
-            while(True):
-                #show image
-                cv2.imshow('MainWindow',image)
-                #and wait for user input 
-                KeyPressed = cv2.waitKey(10) 
-                if  KeyPressed & 0xFF == ord('q'):
-                    #if keypressed = q then quit
-                    cv2.destroyAllWindows()
-                    return 0
-                    #sys.exit('exit')
-                elif KeyPressed & 0xFF == ord('d'):
-                    #if keypressed = d then move to the next image
-                    k += 1
-                    break
-                elif KeyPressed & 0xFF == ord('a'):
-                    #if keypressed = a then move to the previous image
-                    k -= 1
-                    #if in the first image then do nothing
-                    if k<0:
-                        k=0
-                    break
-        elif len(rects) == 1:
-            
-            #we need to verify that the landmark file is not already saved in 
-            #in the folder, if that is the case then do not compute new 
-            #landmarks, simply use the ones that are already avaliable
-            file_txt=(file_to_read[0:-4]+'.txt')
-            if file_txt in files_txt:
-                shape=(path + '\\' + file_txt)
-                
-                for (i, rect) in enumerate(rects):
-                    # determine the facial landmarks for the face region, then
-                    # convert the facial landmark (x, y)-coordinates to a NumPy array
         
-                    #adjust face position using the scaling factor
-                    mod_rect=rectangle(
-                            left=int(rect.left() * ScalingFactor), 
-                            top=int(rect.top() * ScalingFactor), 
-                            right=int(rect.right() * ScalingFactor), 
-                            bottom=int(rect.bottom() * ScalingFactor))
+        #we need to verify that the file doesn't exist already, or that i wasn't 
+        #created while using the program. 
+        #let's update the list of files in the directory 
+        files = os.listdir(path)
+        
+        #this is the file that i'm looking for (we need to verify if it exists)
+        file_txt=(file_to_read[0:-4]+'.txt')
+        
+        #this implies that the file was already processed and the landmarks are 
+        #on file
+        if file_txt in files:
             
-            #if no landmark file is avaliable then use dlib to locate them in
-            #the image 
-            else:
+            shape=(r''+path + '/' + file_txt)
+            print(shape)
+            for (i, rect) in enumerate(rects):
+                # determine the facial landmarks for the face region, then
+                # convert the facial landmark (x, y)-coordinates to a NumPy array
+    
+                #adjust face position using the scaling factor
+                mod_rect=rectangle(
+                        left=int(rect.left() * ScalingFactor), 
+                        top=int(rect.top() * ScalingFactor), 
+                        right=int(rect.right() * ScalingFactor), 
+                        bottom=int(rect.bottom() * ScalingFactor))
+            
+            #this function takes care of do all the processing of a valid image
+            #it doesn't return anything 
+            KeyPressed = process_image(file_to_read, path, image, mod_rect, shape)
+            
+            if  KeyPressed & 0xFF == ord('q'):
+                #if keypressed = q then quit
+                cv2.destroyAllWindows()
+                return 0
+                #sys.exit('exit')
+            elif KeyPressed & 0xFF == ord('d'):
+                #if keypressed = d then move to the next image
+                k += 1
+            elif KeyPressed & 0xFF == ord('a'):
+                #if keypressed = a then move to the previous image
+                k -= 1
+                #if in the first image then do nothing
+                if k<0:
+                    k=0
+                    
+        else:
+        #this means that the landmark info is not on file and needs to be 
+        #estimated from the image            
+        
+            if len(rects) == 0:
+                #there is no face, the user should move on or quit 
+                cv2.putText(image,"No face detected", 
+                            (int(height/5),int(width/2)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255),2)
+                while(True):
+                    #show image
+                    cv2.imshow('MainWindow',image)
+                    #and wait for user input 
+                    KeyPressed = cv2.waitKey(10) 
+                    if  KeyPressed & 0xFF == ord('q'):
+                        #if keypressed = q then quit
+                        cv2.destroyAllWindows()
+                        return 0
+                        #sys.exit('exit')
+                    elif KeyPressed & 0xFF == ord('d'):
+                        #if keypressed = d then move to the next image                    
+                        k += 1
+                        break
+                    elif KeyPressed & 0xFF == ord('a'):
+                        #if keypressed = a then move to the previous image 
+                        k -= 1
+                        #if in the first image then do nothing  
+                        if k<0:
+                            k=0
+                        break
+            elif len(rects) > 1:
+                #there are multiple faces, the user should move on or quit 
+                cv2.putText(image,"Multiple faces detected", 
+                            (int(height/5),int(width/2)), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255),2)
+                while(True):
+                    #show image
+                    cv2.imshow('MainWindow',image)
+                    #and wait for user input 
+                    KeyPressed = cv2.waitKey(10) 
+                    if  KeyPressed & 0xFF == ord('q'):
+                        #if keypressed = q then quit
+                        cv2.destroyAllWindows()
+                        return 0
+                        #sys.exit('exit')
+                    elif KeyPressed & 0xFF == ord('d'):
+                        #if keypressed = d then move to the next image
+                        k += 1
+                        break
+                    elif KeyPressed & 0xFF == ord('a'):
+                        #if keypressed = a then move to the previous image
+                        k -= 1
+                        #if in the first image then do nothing
+                        if k<0:
+                            k=0
+                        break
+            elif len(rects) == 1:
+    
                 #now we have only one face in the image
                 #function to obtain facial landmarks using dlib 
                 #given an image and a face
@@ -520,25 +551,28 @@ def main(path,k):
                 
                     #transform shape object to np.matrix type
                     shape = shape_to_np(shape)
+    
+                #this function takes care of do all the processing of a valid image
+                #it doesn't return anything 
+                KeyPressed = process_image(file_to_read, path, image, mod_rect, shape)
+                
+                if  KeyPressed & 0xFF == ord('q'):
+                    #if keypressed = q then quit
+                    cv2.destroyAllWindows()
+                    return 0
+                    #sys.exit('exit')
+                elif KeyPressed & 0xFF == ord('d'):
+                    #if keypressed = d then move to the next image
+                    k += 1
+                    if k>len(files_to_read):
+                            k=len(files_to_read)
+                elif KeyPressed & 0xFF == ord('a'):
+                    #if keypressed = a then move to the previous image
+                    k -= 1
+                    #if in the first image then do nothing
+                    if k<0:
+                        k=0
 
-            #this function takes care of do all the processing of a valid image
-            #it doesn't return anything 
-            KeyPressed = process_image(file_to_read, path, image, mod_rect, shape)
-            
-            if  KeyPressed & 0xFF == ord('q'):
-                #if keypressed = q then quit
-                cv2.destroyAllWindows()
-                return 0
-                #sys.exit('exit')
-            elif KeyPressed & 0xFF == ord('d'):
-                #if keypressed = d then move to the next image
-                k += 1
-            elif KeyPressed & 0xFF == ord('a'):
-                #if keypressed = a then move to the previous image
-                k -= 1
-                #if in the first image then do nothing
-                if k<0:
-                    k=0
 
         
     cv2.destroyAllWindows()
